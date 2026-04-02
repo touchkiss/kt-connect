@@ -12,3 +12,4 @@ node_modules/
 note/
 .jvmrc
 .DS_Store
+.worktrees/
