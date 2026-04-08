@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/alibaba/kt-connect/pkg/kt/command"
 	"github.com/alibaba/kt-connect/pkg/kt/command/general"
 	opt "github.com/alibaba/kt-connect/pkg/kt/command/options"
@@ -10,11 +12,10 @@ import (
 	"github.com/spf13/cobra"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"os"
 )
 
 var (
-	version = "dev"
+	version = "0.3.7"
 )
 
 func init() {
@@ -34,9 +35,9 @@ func main() {
 	cobra.EnableCommandSorting = false
 
 	var rootCmd = &cobra.Command{
-		Use:   "ktctl",
+		Use:     "ktctl",
 		Version: version,
-		Short: "A utility tool to help you work with Kubernetes dev environment more efficiently",
+		Short:   "A utility tool to help you work with Kubernetes dev environment more efficiently",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},

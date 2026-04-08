@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/alibaba/kt-connect/pkg/common"
 	"github.com/alibaba/kt-connect/pkg/shadow/dnsserver"
+	shadowProxy "github.com/alibaba/kt-connect/pkg/shadow/proxy"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -16,11 +18,25 @@ const (
 	ArgDnsProtocol = "--protocol"
 	// ArgLogLevel application argument for shadow pod log level
 	ArgLogLevel = "--log-level"
+	// ArgLane application argument for shadow lane injection
+	ArgLane = "--lane"
 )
 
 func init() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 }
+
+var (
+	startDnsServer = func(dnsPort int, dnsProtocol string, localDomain string) {
+		dnsserver.Start(dnsPort, dnsProtocol, localDomain)
+	}
+	startProxyServer = func(lane string) {
+		log.Info().Msgf("Shadow proxy enabled for lane %s", lane)
+		if err := http.ListenAndServe(":80", shadowProxy.New(lane)); err != nil {
+			log.Error().Err(err).Msg("Failed to start shadow proxy")
+		}
+	}
+)
 
 func main() {
 	logLevel := getParameter(common.EnvVarLogLevel, ArgLogLevel, "info")
@@ -29,14 +45,34 @@ func main() {
 		log.Error().Err(err).Msgf("Failed to parse log level")
 	}
 	zerolog.SetGlobalLevel(level)
-	dnsPort := common.StandardDnsPort
 	dnsProtocol := getParameter(common.EnvVarDnsProtocol, ArgDnsProtocol, "udp")
 	localDomain := getParameter(common.EnvVarLocalDomains, ArgLocalDomains, "")
-	log.Info().Msgf("Shadow DNS on %s port %d, log level %s", dnsProtocol, dnsPort, logLevel)
+	lane := getParameter(common.EnvVarLane, ArgLane, "")
+	runShadow(dnsProtocol, localDomain, lane)
+}
+
+func runShadow(dnsProtocol, localDomain, lane string) {
+	dnsPort := common.StandardDnsPort
+	log.Info().Msgf("Shadow DNS on %s port %d", dnsProtocol, dnsPort)
 	if localDomain != "" {
 		log.Info().Msgf("Using local domain %s", localDomain)
 	}
-	dnsserver.Start(dnsPort, dnsProtocol, localDomain)
+	if lane != "" {
+		go startProxyServer(lane)
+	}
+	startDnsServer(dnsPort, dnsProtocol, localDomain)
+}
+
+func resetShadowStarters() {
+	startDnsServer = func(dnsPort int, dnsProtocol string, localDomain string) {
+		dnsserver.Start(dnsPort, dnsProtocol, localDomain)
+	}
+	startProxyServer = func(lane string) {
+		log.Info().Msgf("Shadow proxy enabled for lane %s", lane)
+		if err := http.ListenAndServe(":80", shadowProxy.New(lane)); err != nil {
+			log.Error().Err(err).Msg("Failed to start shadow proxy")
+		}
+	}
 }
 
 func getParameter(envVar string, argVar string, defaultValue string) string {

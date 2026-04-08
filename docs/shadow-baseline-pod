@@ -1,0 +1,114 @@
+Name:             kt-connect-shadow-beeto-baseline-s1775570182-jnamg
+Namespace:        beeto
+Priority:         0
+Service Account:  default
+Node:             10.92.160.220/10.92.160.220
+Start Time:       Tue, 07 Apr 2026 21:56:23 +0800
+Labels:           control-by=kt
+                  kt-lane=baseline
+                  kt-role=shadow-connect
+                  kt-session=s1775570182-jnamg
+                  sidecar.istio.io/inject=true
+Annotations:      kt-last-heart-beat: 1775570182
+                  kt-ref-count: 1
+                  kt-user: liushiyou
+                  kubernetes.io/limit-ranger:
+                    LimitRanger plugin set: cpu, memory request for container kt-connect-shadow; cpu, memory limit for container kt-connect-shadow; cpu, memor...
+                  sidecar.istio.io/inject: true
+                  sidecar.istio.io/proxyCPU: 100m
+                  sidecar.istio.io/proxyCPULimit: 200m
+                  sidecar.istio.io/proxyMemory: 128Mi
+                  sidecar.istio.io/proxyMemoryLimit: 256Mi
+Status:           Pending
+IP:               172.16.37.199
+IPs:
+  IP:  172.16.37.199
+Init Containers:
+  kt-shadow-keystore-init:
+    Container ID:  containerd://45825103a134dc7b5b9cff255a105b16419555725fa218f36d35eab9dee7e5f4
+    Image:         registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow:vdev
+    Image ID:      registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow@sha256:bfd0d4fab75ff208c2bc8cc05831a38aa83bbcd5a8831968ece64b2f67275faf
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      mkdir -p /var/kt-connect/keystore && cp /root/authorized /var/kt-connect/keystore/authorized_keys
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+      Started:      Tue, 07 Apr 2026 21:57:03 +0800
+      Finished:     Tue, 07 Apr 2026 21:57:03 +0800
+    Ready:          False
+    Restart Count:  3
+    Limits:
+      cpu:     2
+      memory:  1Gi
+    Requests:
+      cpu:        200m
+      memory:     256Mi
+    Environment:  <none>
+    Mounts:
+      /root/authorized from ssh-public-key (rw)
+      /var/kt-connect/keystore from kt-shadow-keystore (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-vn9n7 (ro)
+Containers:
+  kt-connect-shadow:
+    Container ID:
+    Image:          registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow:vdev
+    Image ID:
+    Port:           <none>
+    Host Port:      <none>
+    State:          Waiting
+      Reason:       PodInitializing
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     2
+      memory:  1Gi
+    Requests:
+      cpu:     200m
+      memory:  256Mi
+    Environment:
+      KT_DNS_PROTOCOL:  tcp
+      KT_LOG_LEVEL:     info
+      KT_LANE:          baseline
+    Mounts:
+      /root/authorized from ssh-public-key (rw)
+      /var/kt-connect/keystore from kt-shadow-keystore (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-vn9n7 (ro)
+Conditions:
+  Type              Status
+  Initialized       False
+  Ready             False
+  ContainersReady   False
+  PodScheduled      True
+Volumes:
+  kt-shadow-keystore:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  ssh-public-key:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      kt-connect-shadow-beeto-baseline-s1775570182-jnamg
+    Optional:  false
+  kube-api-access-vn9n7:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  62s                default-scheduler  Successfully assigned beeto/kt-connect-shadow-beeto-baseline-s1775570182-jnamg to 10.92.160.220
+  Normal   Pulled     23s (x4 over 61s)  kubelet            Container image "registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow:vdev" already present on machine
+  Normal   Created    23s (x4 over 61s)  kubelet            Created container kt-shadow-keystore-init
+  Normal   Started    22s (x4 over 61s)  kubelet            Started container kt-shadow-keystore-init
+  Warning  BackOff    8s (x6 over 59s)   kubelet            Back-off restarting failed container

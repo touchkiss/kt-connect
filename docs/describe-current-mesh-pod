@@ -1,0 +1,412 @@
+Name:             jaco-mixin-entrypoint-jaco-baseline-98c986d4f-tbp69
+Namespace:        mixin
+Priority:         0
+Service Account:  default
+Node:             10.92.195.110/10.92.195.110
+Start Time:       Tue, 31 Mar 2026 19:35:25 +0800
+Labels:           app.kubernetes.io/name=jaco-mixin-entrypoint
+                  app.kubernetes.io/part-of=jaco-mixin
+                  app.kubernetes.io/release=mesh
+                  app.kubernetes.io/version=v3.14.4
+                  app.kubernetes.io/workload=frontend
+                  pod-template-hash=98c986d4f
+                  security.istio.io/tlsMode=istio
+                  service.istio.io/canonical-name=jaco-mixin-entrypoint
+                  service.istio.io/canonical-revision=v3.14.4
+                  sidecar.istio.io/inject=true
+                  version=jaco-baseline
+Annotations:      instrumentation.opentelemetry.io/container-names: entrypoint
+                  instrumentation.opentelemetry.io/inject-java: opentelemetry/java-tomcat-instrumentation
+                  istio.io/rev: default
+                  kubectl.kubernetes.io/default-container: entrypoint
+                  kubectl.kubernetes.io/default-logs-container: entrypoint
+                  sidecar.istio.io/proxyCPU: 1000m
+                  sidecar.istio.io/proxyCPULimit: 1500m
+                  sidecar.istio.io/proxyMemory: 200Mi
+                  sidecar.istio.io/proxyMemoryLimit: 500Mi
+                  sidecar.istio.io/status:
+                    {"initContainers":["istio-init"],"containers":["istio-proxy"],"volumes":["workload-socket","credential-socket","workload-certs","istio-env...
+Status:           Running
+IP:               10.4.14.246
+IPs:
+  IP:           10.4.14.246
+Controlled By:  ReplicaSet/jaco-mixin-entrypoint-jaco-baseline-98c986d4f
+Init Containers:
+  keystore:
+    Container ID:  containerd://93f3c31b54e9141243506b34e25537a0777c89626ac8bb4c92d402955627cd96
+    Image:         registry.bee.to/sre/openssl:11-jre-alpine-temurin
+    Image ID:      registry.bee.to/sre/openssl@sha256:fbfd2bf0e51be76f52b8e24018ea435bf33d0ddee43007adda2286aa8f087d71
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      /bin/sh
+      -cex
+      openssl pkcs12 -export -in /etc/tls/consul/tls.crt -inkey /etc/tls/consul/tls.key -out /etc/keystore/consul/keystore.p12 -name 'client.dc1.consul'  -passout pass:${CONSUL_KEYSTORE_PASSWORD} && keytool -importkeystore -noprompt -srckeystore /etc/keystore/consul/keystore.p12 -srcstoretype pkcs12 -srcstorepass ${CONSUL_KEYSTORE_PASSWORD} -destkeystore /etc/keystore/consul/keystore.jks -deststoretype jks -deststorepass ${CONSUL_KEYSTORE_PASSWORD} && keytool -importcert -noprompt -trustcacerts -file /etc/tls/consul/ca.crt -alias ca -keystore /etc/keystore/consul/keystore.jks -storepass ${CONSUL_KEYSTORE_PASSWORD} && rm -rf /etc/keystore/consul/keystore.p12 && chmod 644 /etc/keystore/consul/keystore.jks
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Tue, 31 Mar 2026 19:35:26 +0800
+      Finished:     Tue, 31 Mar 2026 19:35:26 +0800
+    Ready:          True
+    Restart Count:  0
+    Environment Variables from:
+      jaco-mixin-secret-env-k8m829hk42  Secret  Optional: false
+    Environment:                        <none>
+    Mounts:
+      /etc/keystore/consul from keystore (rw)
+      /etc/tls/consul from tls (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+  istio-init:
+    Container ID:  containerd://e654db80d9d7810cda869d4f522fe9c40566269537149a8bcde5febc91ce0442
+    Image:         registry.bee.to/mesh/proxyv2:1.25.3
+    Image ID:      registry.bee.to/mesh/proxyv2@sha256:7a5421184189e4bb5e0c40e18847611a70da9a69d1955e2232692242576084dc
+    Port:          <none>
+    Host Port:     <none>
+    Args:
+      istio-iptables
+      -p
+      15001
+      -z
+      15006
+      -u
+      1337
+      -m
+      REDIRECT
+      -i
+      *
+      -x
+
+      -b
+      *
+      -d
+      15090,15021,15020
+      --log_output_level=default:info
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Tue, 31 Mar 2026 19:35:27 +0800
+      Finished:     Tue, 31 Mar 2026 19:35:27 +0800
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     1500m
+      memory:  500Mi
+    Requests:
+      cpu:        1
+      memory:     200Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+  opentelemetry-auto-instrumentation-java:
+    Container ID:  containerd://e08f9c9c035bea3f9c414072b4cf6b36b5ccb73d99c3b9089f1a39ff4694606f
+    Image:         registry.bee.to/official/autoinstrumentation-java:1.26.0
+    Image ID:      registry.bee.to/official/autoinstrumentation-java@sha256:67ff321e8a53d2f4f3a5f9928c3aaa716c97b25e48bdd3da8658278f65b3e557
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      cp
+      /javaagent.jar
+      /otel-auto-instrumentation-java/javaagent.jar
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Tue, 31 Mar 2026 19:35:28 +0800
+      Finished:     Tue, 31 Mar 2026 19:35:28 +0800
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     500m
+      memory:  256Mi
+    Requests:
+      cpu:        50m
+      memory:     64Mi
+    Environment:  <none>
+    Mounts:
+      /otel-auto-instrumentation-java from opentelemetry-auto-instrumentation-java (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+Containers:
+  entrypoint:
+    Container ID:   containerd://575a4e16bcb9d4b5d874eb86562c66b04c85b3e10a308c1229934e866ba9895a
+    Image:          registry.bee.to/jaco/beeto-mixin-entrypoint:v3.14.4
+    Image ID:       registry.bee.to/jaco/beeto-mixin-entrypoint@sha256:be09de5358b03c204aad31f50846775d9b62628d26f30b2a7e6ad1da795f9cc8
+    Ports:          8080/TCP, 9090/TCP, 9464/TCP
+    Host Ports:     0/TCP, 0/TCP, 0/TCP
+    State:          Running
+      Started:      Thu, 02 Apr 2026 21:19:29 +0800
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Tue, 31 Mar 2026 19:35:34 +0800
+      Finished:     Thu, 02 Apr 2026 21:19:29 +0800
+    Ready:          True
+    Restart Count:  1
+    Limits:
+      cpu:     3250m
+      memory:  4870Mi
+    Requests:
+      cpu:      1500m
+      memory:   3996Mi
+    Liveness:   http-get http://:15020/app-health/entrypoint/livez delay=0s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:15020/app-health/entrypoint/readyz delay=0s timeout=1s period=10s #success=1 #failure=3
+    Startup:    http-get http://:15020/app-health/entrypoint/startupz delay=0s timeout=1s period=10s #success=1 #failure=60
+    Environment Variables from:
+      jaco-mixin-entrypoint-env-c7f2g28f87  ConfigMap  Optional: false
+      jaco-mixin-secret-env-k8m829hk42      Secret     Optional: false
+    Environment:
+      OTEL_NODE_IP:                                                              (v1:status.hostIP)
+      OTEL_POD_IP:                                                               (v1:status.podIP)
+      MY_POD_NAME:                                                              jaco-mixin-entrypoint-jaco-baseline-98c986d4f-tbp69 (v1:metadata.name)
+      MY_HOST_IP:                                                                (v1:status.hostIP)
+      MY_POD_IP:                                                                 (v1:status.podIP)
+      MY_NAMESPACE:                                                             mixin (v1:metadata.namespace)
+      MY_APP_NAME:                                                               (v1:metadata.labels['app.kubernetes.io/name'])
+      MY_POD_VERSION:                                                            (v1:metadata.labels['app.kubernetes.io/version'])
+      OTEL_SERVICE_NAME:                                                        $(MY_APP_NAME)
+      OTEL_INSTRUMENTATION_COMMON_DEFAULT_ENABLED:                              false
+      OTEL_METRICS_EXPORTER:                                                    prometheus
+      OTEL_EXPORTER_PROMETHEUS_PORT:                                            9464
+      OTEL_LOGS_EXPORTER:                                                       otlp
+      OTEL_INSTRUMENTATION_METHODS_ENABLED:                                     true
+      OTEL_INSTRUMENTATION_EXTERNAL_ANNOTATIONS_ENABLED:                        true
+      OTEL_INSTRUMENTATION_APACHE_DBCP_ENABLED:                                 true
+      OTEL_INSTRUMENTATION_APACHE_HTTPASYNCCLIENT_ENABLED:                      true
+      OTEL_INSTRUMENTATION_APACHE_HTTPCLIENT_ENABLED:                           true
+      OTEL_INSTRUMENTATION_APACHE_KAFKA_ENABLED:                                true
+      OTEL_INSTRUMENTATION_TOMCAT_ENABLED:                                      true
+      OTEL_INSTRUMENTATION_C3P0_ENABLED:                                        true
+      OTEL_INSTRUMENTATION_ELASTICSEARCH_TRANSPORT_ENABLED:                     true
+      OTEL_INSTRUMENTATION_ELASTICSEARCH_REST_ENABLED:                          true
+      OTEL_INSTRUMENTATION_GUAVA_ENABLED:                                       true
+      OTEL_INSTRUMENTATION_GRPC_ENABLED:                                        true
+      OTEL_INSTRUMENTATION_HIKARICP_ENABLED:                                    true
+      OTEL_INSTRUMENTATION_JAVA_HTTP_CLIENT_ENABLED:                            true
+      OTEL_INSTRUMENTATION_HTTP_URL_CONNECTION_ENABLED:                         true
+      OTEL_INSTRUMENTATION_JDBC_ENABLED:                                        true
+      OTEL_INSTRUMENTATION_JDBC_DATASOURCE_ENABLED:                             true
+      OTEL_INSTRUMENTATION_RUNTIME_METRICS_ENABLED:                             false
+      OTEL_INSTRUMENTATION_SERVLET_ENABLED:                                     false
+      OTEL_INSTRUMENTATION_EXECUTORS_ENABLED:                                   true
+      OTEL_INSTRUMENTATION_LOG4J_APPENDER_ENABLED:                              true
+      OTEL_INSTRUMENTATION_LOG4J_MDC_ENABLED:                                   true
+      OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED:                            true
+      OTEL_INSTRUMENTATION_LOGBACK_MDC_ENABLED:                                 true
+      OTEL_INSTRUMENTATION_LOG4J_CONTEXT_DATA_ENABLED:                          true
+      OTEL_INSTRUMENTATION_LOG4J_APPENDER_EXPERIMENTAL_CAPTURE_MDC_ATTRIBUTES:  request_id
+      OTEL_INSTRUMENTATION_LOG4J_APPENDER_EXPERIMENTAL_LOG_ATTRIBUTES:          true
+      OTEL_INSTRUMENTATION_NETTY_ENABLED:                                       true
+      OTEL_INSTRUMENTATION_OKHTTP_ENABLED:                                      true
+      OTEL_INSTRUMENTATION_OPENTELEMETRY_EXTENSION_ANNOTATIONS_ENABLED:         true
+      OTEL_INSTRUMENTATION_OPENTELEMETRY_INSTRUMENTATION_ANNOTATIONS_ENABLED:   true
+      OTEL_INSTRUMENTATION_OPENTELEMETRY_API_ENABLED:                           true
+      OTEL_INSTRUMENTATION_QUARTZ_ENABLED:                                      true
+      OTEL_INSTRUMENTATION_LETTUCE_ENABLED:                                     true
+      OTEL_INSTRUMENTATION_JEDIS_ENABLED:                                       true
+      OTEL_INSTRUMENTATION_SPRING_CORE_ENABLED:                                 true
+      OTEL_INSTRUMENTATION_SPRING_SCHEDULING_ENABLED:                           true
+      OTEL_INSTRUMENTATION_SPRING_DATA_ENABLED:                                 true
+      OTEL_INSTRUMENTATION_SPRING_KAFKA_ENABLED:                                true
+      OTEL_INSTRUMENTATION_SPRING_RABBIT_ENABLED:                               true
+      OTEL_INSTRUMENTATION_SPRING_WEB_ENABLED:                                  true
+      OTEL_INSTRUMENTATION_SPRING_WEBMVC_ENABLED:                               true
+      OTEL_INSTRUMENTATION_SPYMEMCACHED_ENABLED:                                true
+      OTEL_EXPORTER_OTLP_PROTOCOL:                                              grpc
+      JAVA_TOOL_OPTIONS:                                                         -javaagent:/otel-auto-instrumentation-java-entrypoint/javaagent.jar
+      OTEL_EXPORTER_OTLP_ENDPOINT:                                              http://$(MY_HOST_IP):4317
+      OTEL_RESOURCE_ATTRIBUTES_POD_NAME:                                        jaco-mixin-entrypoint-jaco-baseline-98c986d4f-tbp69 (v1:metadata.name)
+      OTEL_RESOURCE_ATTRIBUTES_NODE_NAME:                                        (v1:spec.nodeName)
+      OTEL_PROPAGATORS:                                                         tracecontext,baggage,jaeger,b3
+      OTEL_TRACES_SAMPLER:                                                      parentbased_always_on
+      OTEL_RESOURCE_ATTRIBUTES:                                                 k8s.container.name=entrypoint,k8s.deployment.name=jaco-mixin-entrypoint-jaco-baseline,k8s.namespace.name=mixin,k8s.node.name=$(OTEL_RESOURCE_ATTRIBUTES_NODE_NAME),k8s.pod.name=$(OTEL_RESOURCE_ATTRIBUTES_POD_NAME),k8s.replicaset.name=jaco-mixin-entrypoint-jaco-baseline-98c986d4f,service.instance.id=mixin.$(OTEL_RESOURCE_ATTRIBUTES_POD_NAME).entrypoint,service.namespace=mixin,service.version=v3.14.4
+    Mounts:
+      /data1/ephemeral from ephemeral (rw)
+      /data1/weibo/gclogs/ from gclogs (rw)
+      /data1/weibo/logs/ from logs (rw)
+      /etc/keystore/consul from keystore (rw)
+      /otel-auto-instrumentation-java-entrypoint from opentelemetry-auto-instrumentation-java (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+  filebeat:
+    Container ID:  containerd://bad1bde57f0a70aa71c0b0f2f3e1c45f80ba46041ff4c6c26440cb6b7cf2e4cb
+    Image:         registry.bee.to/sre/filebeat:6.8.13
+    Image ID:      harbor.hektarapp.com/sre/filebeat@sha256:ec9a8e77a6d968d7ed25ccb871b442ddfbe583b488ec6133abc931102a904901
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      /usr/share/filebeat/filebeat
+      -c
+      config/filebeat.yml
+      -e
+    State:          Running
+      Started:      Tue, 31 Mar 2026 19:35:34 +0800
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     800m
+      memory:  2Gi
+    Requests:
+      cpu:     500m
+      memory:  100Mi
+    Environment:
+      MY_POD_NAME:     jaco-mixin-entrypoint-jaco-baseline-98c986d4f-tbp69 (v1:metadata.name)
+      MY_NAMESPACE:    mixin (v1:metadata.namespace)
+      MY_POD_VERSION:   (v1:metadata.labels['app.kubernetes.io/version'])
+    Mounts:
+      /data1/filebeat/data/ from filebeat (rw)
+      /data1/weibo/logs/ from logs (rw)
+      /usr/share/filebeat/config from filebeat-confs (rw)
+      /usr/share/filebeat/inputs from filebeat-inputs (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+  istio-proxy:
+    Container ID:  containerd://df8a6f36727e6b741483f1142ac2299ed65af48e93a33a6365f1073f68e552fe
+    Image:         registry.bee.to/mesh/proxyv2:1.25.3
+    Image ID:      registry.bee.to/mesh/proxyv2@sha256:7a5421184189e4bb5e0c40e18847611a70da9a69d1955e2232692242576084dc
+    Port:          15090/TCP
+    Host Port:     0/TCP
+    Args:
+      proxy
+      sidecar
+      --domain
+      $(POD_NAMESPACE).svc.cluster.ali-bjdev-46
+      --proxyLogLevel=warning
+      --proxyComponentLogLevel=misc:error
+      --log_output_level=default:info
+    State:          Running
+      Started:      Thu, 02 Apr 2026 20:44:07 +0800
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Tue, 31 Mar 2026 19:35:35 +0800
+      Finished:     Thu, 02 Apr 2026 20:44:07 +0800
+    Ready:          True
+    Restart Count:  1
+    Limits:
+      cpu:     1500m
+      memory:  500Mi
+    Requests:
+      cpu:      1
+      memory:   200Mi
+    Readiness:  http-get http://:15021/healthz/ready delay=0s timeout=3s period=15s #success=1 #failure=4
+    Startup:    http-get http://:15021/healthz/ready delay=0s timeout=3s period=1s #success=1 #failure=600
+    Environment:
+      PILOT_CERT_PROVIDER:           istiod
+      CA_ADDR:                       istiod.istio-system.svc:15012
+      POD_NAME:                      jaco-mixin-entrypoint-jaco-baseline-98c986d4f-tbp69 (v1:metadata.name)
+      POD_NAMESPACE:                 mixin (v1:metadata.namespace)
+      INSTANCE_IP:                    (v1:status.podIP)
+      SERVICE_ACCOUNT:                (v1:spec.serviceAccountName)
+      HOST_IP:                        (v1:status.hostIP)
+      ISTIO_CPU_LIMIT:               2 (limits.cpu)
+      PROXY_CONFIG:                  {"proxyStatsMatcher":{"inclusionRegexps":[".*assignment_st.*",".*http2.*",".*lb_healthy.*",".*manager_cds.*",".*manager_warming.*",".*membership.*",".*upstream.*",".*bind.*"]}}
+
+      ISTIO_META_POD_PORTS:          [
+                                         {"name":"http","containerPort":8080,"protocol":"TCP"}
+                                         ,{"name":"grpc","containerPort":9090,"protocol":"TCP"}
+                                         ,{"name":"otel","containerPort":9464,"protocol":"TCP"}
+                                     ]
+      ISTIO_META_APP_CONTAINERS:     entrypoint,filebeat
+      GOMEMLIMIT:                    524288000 (limits.memory)
+      GOMAXPROCS:                    2 (limits.cpu)
+      ISTIO_META_CLUSTER_ID:         Kubernetes
+      ISTIO_META_NODE_NAME:           (v1:spec.nodeName)
+      ISTIO_META_INTERCEPTION_MODE:  REDIRECT
+      ISTIO_META_WORKLOAD_NAME:      jaco-mixin-entrypoint-jaco-baseline
+      ISTIO_META_OWNER:              kubernetes://apis/apps/v1/namespaces/mixin/deployments/jaco-mixin-entrypoint-jaco-baseline
+      ISTIO_META_MESH_ID:            cluster.local
+      TRUST_DOMAIN:                  cluster.local
+      ISTIO_KUBE_APP_PROBERS:        {"/app-health/entrypoint/livez":{"httpGet":{"path":"/actuator/health/liveness","port":8080,"scheme":"HTTP"},"timeoutSeconds":1},"/app-health/entrypoint/readyz":{"httpGet":{"path":"/actuator/health/readiness","port":8080,"scheme":"HTTP"},"timeoutSeconds":1},"/app-health/entrypoint/startupz":{"httpGet":{"path":"/actuator/health/liveness","port":8080,"scheme":"HTTP"},"timeoutSeconds":1}}
+    Mounts:
+      /etc/istio/pod from istio-podinfo (rw)
+      /etc/istio/proxy from istio-envoy (rw)
+      /var/lib/istio/data from istio-data (rw)
+      /var/run/secrets/credential-uds from credential-socket (rw)
+      /var/run/secrets/istio from istiod-ca-cert (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-txwgc (ro)
+      /var/run/secrets/tokens from istio-token (rw)
+      /var/run/secrets/workload-spiffe-credentials from workload-certs (rw)
+      /var/run/secrets/workload-spiffe-uds from workload-socket (rw)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True
+  Initialized                 True
+  Ready                       True
+  ContainersReady             True
+  PodScheduled                True
+Volumes:
+  workload-socket:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  credential-socket:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  workload-certs:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  istio-envoy:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     Memory
+    SizeLimit:  <unset>
+  istio-data:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  istio-podinfo:
+    Type:  DownwardAPI (a volume populated by information about the pod)
+    Items:
+      metadata.labels -> labels
+      metadata.annotations -> annotations
+  istio-token:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  43200
+  istiod-ca-cert:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      istio-ca-root-cert
+    Optional:  false
+  filebeat:
+    Type:          HostPath (bare host directory volume)
+    Path:          /data1/beeto/filebeat
+    HostPathType:  DirectoryOrCreate
+  filebeat-confs:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      jaco-mixin-filebeat-confs-5466k49m8d
+    Optional:  false
+  filebeat-inputs:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      jaco-mixin-filebeat-inputs-k9t7fbc8k2
+    Optional:  false
+  tls:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  sa-consul-client-private
+    Optional:    false
+  keystore:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:  <unset>
+  logs:
+    Type:          HostPath (bare host directory volume)
+    Path:          /data1/beeto/logs
+    HostPathType:  DirectoryOrCreate
+  gclogs:
+    Type:          HostPath (bare host directory volume)
+    Path:          /data1/beeto/gclogs
+    HostPathType:  DirectoryOrCreate
+  ephemeral:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     Memory
+    SizeLimit:  10Mi
+  kube-api-access-txwgc:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+  opentelemetry-auto-instrumentation-java:
+    Type:        EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:
+    SizeLimit:   200Mi
+QoS Class:       Burstable
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                 node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:          <none>

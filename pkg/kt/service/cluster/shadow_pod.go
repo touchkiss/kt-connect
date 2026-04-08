@@ -3,6 +3,8 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	opt "github.com/alibaba/kt-connect/pkg/kt/command/options"
 	"github.com/alibaba/kt-connect/pkg/kt/util"
 	"github.com/rs/zerolog/log"
@@ -10,7 +12,12 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
+)
+
+const (
+	laneShadowKeystoreVolumeName = "kt-shadow-keystore"
+	laneShadowKeystoreMountPath  = "/var/kt-connect/keystore"
+	laneShadowKeystoreInitName   = "keystore"
 )
 
 // GetOrCreateShadow create shadow pod or deployment
@@ -25,6 +32,12 @@ func (k *Kubernetes) GetOrCreateShadow(name string, labels, annotations, envs ma
 	}
 	for key, val := range util.String2Map(opt.Get().Global.WithAnnotation) {
 		annotations[key] = val
+	}
+	if lane, exists := labels[util.KtLane]; exists {
+		opt.Store.Lane = lane
+	}
+	if session, exists := labels[util.KtSession]; exists {
+		opt.Store.Session = session
 	}
 	annotations[util.KtUser] = util.GetLocalUserName()
 	resourceMeta := ResourceMeta{
@@ -56,7 +69,7 @@ func (k *Kubernetes) GetOrCreateShadow(name string, labels, annotations, envs ma
 		}
 	}
 
-	if opt.Store.Component == util.ComponentConnect && opt.Get().Connect.ShareShadow {
+	if opt.Store.Component == util.ComponentConnect && (opt.Get().Connect.ShareShadow || labels[util.KtSession] != "") {
 		pod, generator, err2 := k.tryGetExistingShadows(&resourceMeta, &sshKeyMeta)
 		if err2 != nil {
 			return "", "", "", err2
@@ -67,10 +80,14 @@ func (k *Kubernetes) GetOrCreateShadow(name string, labels, annotations, envs ma
 	}
 
 	podMeta := PodMetaAndSpec{
-		Meta:  &resourceMeta,
-		Image: opt.Get().Global.Image,
-		Envs:  envs,
-		Ports: ports,
+		Meta:          &resourceMeta,
+		Image:         opt.Get().Global.Image,
+		ContainerName: "kt-connect-shadow",
+		Envs:          envs,
+		Ports:         ports,
+	}
+	if labels[util.KtLane] != "" && labels[util.KtSession] != "" {
+		enableExplicitLaneShadowTemplate(&podMeta)
 	}
 	return k.createShadow(&podMeta, &sshKeyMeta)
 }
@@ -152,15 +169,11 @@ func (k *Kubernetes) createShadowPod(metaAndSpec *PodMetaAndSpec, sshcm string) 
 }
 
 func (k *Kubernetes) appendSshVolume(podSpec *coreV1.PodSpec, sshcm string) {
-	podSpec.Containers[0].VolumeMounts = []coreV1.VolumeMount{
-		{
-			Name:      "ssh-public-key",
-			MountPath: fmt.Sprintf("/root/%s", util.SshAuthKey),
-		},
-	}
-	podSpec.Volumes = []coreV1.Volume{
-		getSSHVolume(sshcm),
-	}
+	podSpec.Containers[0].VolumeMounts = appendUniqueVolumeMounts(podSpec.Containers[0].VolumeMounts, coreV1.VolumeMount{
+		Name:      "ssh-public-key",
+		MountPath: fmt.Sprintf("/root/%s", util.SshAuthKey),
+	})
+	podSpec.Volumes = appendUniqueVolumes(podSpec.Volumes, getSSHVolume(sshcm))
 }
 
 func (k *Kubernetes) tryGetExistingShadows(resourceMeta *ResourceMeta, sshKeyMeta *SSHkeyMeta) (*coreV1.Pod, *util.SSHGenerator, error) {
@@ -247,3 +260,47 @@ func getSSHVolume(volume string) coreV1.Volume {
 	return sshVolume
 }
 
+func enableExplicitLaneShadowTemplate(metaAndSpec *PodMetaAndSpec) {
+	metaAndSpec.TemplateAnnotations = util.MergeMap(metaAndSpec.TemplateAnnotations, filterSidecarAnnotations(metaAndSpec.Meta.Annotations))
+	metaAndSpec.MainContainerVolumeMounts = appendUniqueVolumeMounts(metaAndSpec.MainContainerVolumeMounts,
+		coreV1.VolumeMount{
+			Name:      laneShadowKeystoreVolumeName,
+			MountPath: laneShadowKeystoreMountPath,
+		},
+		coreV1.VolumeMount{
+			Name:      "ssh-public-key",
+			MountPath: fmt.Sprintf("/root/%s", util.SshAuthKey),
+		},
+	)
+	//metaAndSpec.InitContainers = append(metaAndSpec.InitContainers, coreV1.Container{
+	//	Name:    laneShadowKeystoreInitName,
+	//	Image:   metaAndSpec.Image,
+	//	Command: []string{"sh", "-c", fmt.Sprintf("mkdir -p %[1]s && cp /root/%[2]s %[1]s/authorized_keys", laneShadowKeystoreMountPath, util.SshAuthKey)},
+	//	VolumeMounts: []coreV1.VolumeMount{
+	//		{
+	//			Name:      laneShadowKeystoreVolumeName,
+	//			MountPath: laneShadowKeystoreMountPath,
+	//		},
+	//		{
+	//			Name:      "ssh-public-key",
+	//			MountPath: fmt.Sprintf("/root/%s", util.SshAuthKey),
+	//		},
+	//	},
+	//})
+	metaAndSpec.Volumes = appendUniqueVolumes(metaAndSpec.Volumes, coreV1.Volume{
+		Name: laneShadowKeystoreVolumeName,
+		VolumeSource: coreV1.VolumeSource{
+			EmptyDir: &coreV1.EmptyDirVolumeSource{},
+		},
+	})
+}
+
+func filterSidecarAnnotations(annotations map[string]string) map[string]string {
+	sidecarAnnotations := map[string]string{}
+	for key, value := range annotations {
+		if strings.HasPrefix(key, "sidecar.istio.io/") {
+			sidecarAnnotations[key] = value
+		}
+	}
+	return sidecarAnnotations
+}

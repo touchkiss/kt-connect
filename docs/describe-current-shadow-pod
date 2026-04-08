@@ -1,0 +1,61 @@
+Name:             kt-connect-shadow-colha
+Namespace:        beeto
+Priority:         0
+Service Account:  default
+Node:             10.92.162.234/10.92.162.234
+Start Time:       Tue, 07 Apr 2026 10:38:26 +0800
+Labels:           control-by=kt
+                  kt-role=shadow-connect
+Annotations:      kt-last-heart-beat: 1775548063
+                  kt-ref-count: 1
+                  kt-user: liujintao
+                  kubernetes.io/limit-ranger: LimitRanger plugin set: cpu, memory request for container standalone; cpu, memory limit for container standalone
+Status:           Running
+IP:               172.16.111.64
+IPs:
+  IP:  172.16.111.64
+Containers:
+  standalone:
+    Container ID:   containerd://9d1bf62b041aac92f756b95b3a12680699c74ea5af4a1c9d70575145e2a299d3
+    Image:          registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow:v0.3.7
+    Image ID:       registry.cn-hangzhou.aliyuncs.com/rdc-incubator/kt-connect-shadow@sha256:1ea5c849275e10de6abb27bd381100c49dbc8fbf93a6309a433073815c797c68
+    Port:           <none>
+    Host Port:      <none>
+    State:          Running
+      Started:      Tue, 07 Apr 2026 10:38:27 +0800
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     2
+      memory:  1Gi
+    Requests:
+      cpu:     200m
+      memory:  256Mi
+    Environment:
+      KT_DNS_PROTOCOL:  tcp
+      KT_LOG_LEVEL:     info
+    Mounts:
+      /root/authorized from ssh-public-key (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-ncsn5 (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  ssh-public-key:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      kt-connect-shadow-colha
+    Optional:  false
+  kube-api-access-ncsn5:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:                      <none>

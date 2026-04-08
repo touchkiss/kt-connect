@@ -2,6 +2,10 @@ package connect
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/alibaba/kt-connect/pkg/common"
 	opt "github.com/alibaba/kt-connect/pkg/kt/command/options"
 	"github.com/alibaba/kt-connect/pkg/kt/service/cluster"
@@ -10,16 +14,16 @@ import (
 	"github.com/alibaba/kt-connect/pkg/kt/util"
 	"github.com/rs/zerolog/log"
 	coreV1 "k8s.io/api/core/v1"
-	"strings"
-	"time"
 )
+
+var clusterIns = cluster.Ins
 
 func setupDns(shadowPodName, shadowPodIp string) error {
 	if strings.HasPrefix(opt.Get().Connect.DnsMode, util.DnsModeHosts) {
 		log.Info().Msgf("Setting up dns in hosts mode")
 		dump2HostsNamespaces := ""
 		pos := len(util.DnsModeHosts)
-		if len(opt.Get().Connect.DnsMode) > pos + 1 && opt.Get().Connect.DnsMode[pos:pos+1] == ":" {
+		if len(opt.Get().Connect.DnsMode) > pos+1 && opt.Get().Connect.DnsMode[pos:pos+1] == ":" {
 			dump2HostsNamespaces = opt.Get().Connect.DnsMode[pos+1:]
 		}
 		if err := dumpToHost(dump2HostsNamespaces); err != nil {
@@ -36,8 +40,8 @@ func setupDns(shadowPodName, shadowPodIp string) error {
 		}
 		watchServicesAndPods(opt.Get().Global.Namespace, svcToIp, headlessPods, true)
 
-		forwardedPodPort := util.GetRandomTcpPort()
-		if _, err := transmission.SetupPortForwardToLocal(shadowPodName, common.StandardDnsPort, forwardedPodPort); err != nil {
+		forwardedPodPort, err := setupShadowPortForward(shadowPodName, common.StandardDnsPort, "shadow DNS")
+		if err != nil {
 			return err
 		}
 
@@ -62,18 +66,58 @@ func setupDns(shadowPodName, shadowPodIp string) error {
 }
 
 func getDnsOrder(dnsMode string) []string {
-	if ! strings.Contains(dnsMode, ":") {
-		return []string{ util.DnsOrderCluster, util.DnsOrderUpstream }
+	if !strings.Contains(dnsMode, ":") {
+		return []string{util.DnsOrderCluster, util.DnsOrderUpstream}
 	}
 	return strings.Split(strings.SplitN(dnsMode, ":", 2)[1], ",")
 }
 
+func setupShadowPortForward(shadowPodName string, remotePort int, target string) (int, error) {
+	localPort := util.GetRandomTcpPort()
+	if opt.Get().Connect.Lane == "" {
+		if _, err := transmission.SetupPortForwardToLocal(shadowPodName, remotePort, localPort); err != nil {
+			return 0, fmt.Errorf("setup %s port-forward for pod %s: %w", target, shadowPodName, err)
+		}
+		return localPort, nil
+	}
+	gone, err := transmission.SetupSessionPortForwardToLocal(shadowPodName, remotePort, localPort)
+	if err != nil {
+		return 0, fmt.Errorf("setup %s port-forward for pod %s: %w", target, shadowPodName, err)
+	}
+	watchConnectionGone(target, gone, terminateConnectSession)
+	return localPort, nil
+}
+
+func watchConnectionGone(target string, gone <-chan int, onGone func()) {
+	if gone == nil {
+		return
+	}
+	go func() {
+		<-gone
+		log.Warn().Msgf("%s connection interrupted, ending connect session", target)
+		if onGone != nil {
+			onGone()
+		}
+	}()
+}
+
+func terminateConnectSession() {
+	process, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to locate current process for session shutdown")
+		return
+	}
+	if err = process.Signal(os.Interrupt); err != nil {
+		log.Warn().Err(err).Msg("Failed to signal current process for session shutdown")
+	}
+}
+
 func watchServicesAndPods(namespace string, svcToIp map[string]string, headlessPods []string, shortDomainOnly bool) {
 	setupTime := time.Now().Unix()
-	go cluster.Ins().WatchService("", namespace,
+	go clusterIns().WatchService("", namespace,
 		func(svc *coreV1.Service) {
 			// ignore add service event during watch setup
-			if time.Now().Unix() - setupTime > 3 {
+			if time.Now().Unix()-setupTime > 3 {
 				svcToIp, headlessPods = getServiceHosts(namespace, shortDomainOnly)
 				_ = dns.DumpHosts(svcToIp, namespace)
 			}
@@ -82,7 +126,7 @@ func watchServicesAndPods(namespace string, svcToIp map[string]string, headlessP
 			svcToIp, headlessPods = getServiceHosts(namespace, shortDomainOnly)
 			_ = dns.DumpHosts(svcToIp, namespace)
 		}, nil)
-	go cluster.Ins().WatchPod("", namespace, nil, func(pod *coreV1.Pod) {
+	go clusterIns().WatchPod("", namespace, nil, func(pod *coreV1.Pod) {
 		if util.Contains(headlessPods, pod.Name) {
 			// it may take some time for new pod get assign an ip
 			time.Sleep(5 * time.Second)
@@ -115,12 +159,12 @@ func dumpToHost(targetNamespaces string) error {
 func getServiceHosts(namespace string, shortDomainOnly bool) (map[string]string, []string) {
 	hosts := make(map[string]string)
 	podNames := make([]string, 0)
-	services, err := cluster.Ins().GetAllServiceInNamespace(namespace)
+	services, err := clusterIns().GetAllServiceInNamespace(namespace)
 	if err == nil {
 		for _, service := range services.Items {
 			ip := service.Spec.ClusterIP
 			if ip == "" || ip == "None" {
-				pods, err2 := cluster.Ins().GetPodsByLabel(service.Spec.Selector, namespace)
+				pods, err2 := clusterIns().GetPodsByLabel(service.Spec.Selector, namespace)
 				if err2 != nil || len(pods.Items) == 0 {
 					continue
 				}
@@ -151,17 +195,37 @@ func getServiceHosts(namespace string, shortDomainOnly bool) (map[string]string,
 
 func getOrCreateShadow() (string, string, string, error) {
 	shadowPodName := fmt.Sprintf("kt-connect-shadow-%s", strings.ToLower(util.RandomString(5)))
+	if opt.Get().Connect.Lane != "" {
+		shadowPodName = buildLaneShadowName()
+	}
 	if opt.Get().Connect.ShareShadow {
 		shadowPodName = fmt.Sprintf("kt-connect-shadow-daemon")
 	}
 
-	endPointIP, podName, privateKeyPath, err := cluster.Ins().GetOrCreateShadow(shadowPodName, getLabels(),
-		make(map[string]string), getEnvs(), "", map[int]string{})
+	annotations := buildShadowAnnotations(opt.Get().Connect.Lane)
+	labels := getLabels()
+	endPointIP, podName, privateKeyPath, err := clusterIns().GetOrCreateShadow(shadowPodName, labels,
+		annotations, getEnvs(), "", map[int]string{})
 	if err != nil {
 		return "", "", "", err
 	}
 
+	if opt.Get().Connect.Lane != "" {
+		envoyFilterName := fmt.Sprintf("kt-lane-%s", opt.Store.Session)
+		if err := clusterIns().ApplyLaneEnvoyFilter(envoyFilterName, opt.Get().Global.Namespace, labels, opt.Get().Connect.Lane); err != nil {
+			return "", "", "", err
+		}
+		opt.Store.LaneEnvoyFilter = envoyFilterName
+	}
+
 	return endPointIP, podName, privateKeyPath, nil
+}
+
+func buildLaneShadowName() string {
+	if opt.Store.Session == "" {
+		opt.Store.Session = fmt.Sprintf("s%s-%s", util.GetTimestamp(), strings.ToLower(util.RandomString(5)))
+	}
+	return fmt.Sprintf("kt-connect-shadow-%s-%s-%s", opt.Get().Global.Namespace, opt.Get().Connect.Lane, opt.Store.Session)
 }
 
 func getEnvs() map[string]string {
@@ -181,15 +245,39 @@ func getEnvs() map[string]string {
 	} else {
 		envs[common.EnvVarLogLevel] = "info"
 	}
+	if opt.Get().Connect.Lane != "" {
+		envs[common.EnvVarLane] = opt.Get().Connect.Lane
+	}
 	return envs
 }
 
 func getLabels() map[string]string {
 	labels := map[string]string{
-		util.KtRole:    util.RoleConnectShadow,
+		util.KtRole: util.RoleConnectShadow,
+	}
+	if opt.Get().Connect.Lane != "" {
+		labels[util.KtLane] = opt.Get().Connect.Lane
+		labels["sidecar.istio.io/inject"] = "true"
+		if opt.Store.Session == "" {
+			opt.Store.Session = fmt.Sprintf("s%s-%s", util.GetTimestamp(), strings.ToLower(util.RandomString(5)))
+		}
+		labels[util.KtSession] = opt.Store.Session
 	}
 	if opt.Get().Global.UseShadowDeployment {
 		labels[util.KtTarget] = util.RandomString(20)
 	}
 	return labels
+}
+
+func buildShadowAnnotations(lane string) map[string]string {
+	if lane == "" {
+		return map[string]string{}
+	}
+	return map[string]string{
+		"sidecar.istio.io/inject":           "true",
+		"sidecar.istio.io/proxyCPU":         "1000m",
+		"sidecar.istio.io/proxyCPULimit":    "1500m",
+		"sidecar.istio.io/proxyMemory":      "200Mi",
+		"sidecar.istio.io/proxyMemoryLimit": "500Mi",
+	}
 }

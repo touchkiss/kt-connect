@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: entrypoint
+spec:
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/proxyCPU: "1000m"
+        sidecar.istio.io/proxyMemory: "200Mi"
+        sidecar.istio.io/proxyCPULimit: "1500m"
+        sidecar.istio.io/proxyMemoryLimit: "500Mi"
+      labels:
+        sidecar.istio.io/inject: "true"
+    spec:
+      tolerations: [ ]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-restriction.kubernetes.io/pool
+                    operator: In
+                    values:
+                      - worker
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - jaco-user-entrypoint
+                    - key: app.kubernetes.io/part-of
+                      operator: In
+                      values:
+                        - jaco-user
+                topologyKey: "kubernetes.io/hostname"
+              weight: 100
+      containers:
+      - name: entrypoint
+        resources:
+          requests:
+            cpu: 1500m
+            memory: 3996Mi
+          limits:
+            cpu: 3250m
+            memory: 4870Mi
