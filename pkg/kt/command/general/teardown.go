@@ -24,6 +24,7 @@ import (
 )
 
 var clusterIns = cluster.Ins
+var tunIns = tun.Ins
 
 // CleanupWorkspace clean workspace
 func CleanupWorkspace() {
@@ -31,6 +32,7 @@ func CleanupWorkspace() {
 	cleanLocalFiles()
 	if opt.Store.Component == util.ComponentConnect {
 		recoverGlobalHostsAndProxy()
+		shutdownTunDevice()
 	}
 
 	if opt.Store.Component == util.ComponentExchange {
@@ -40,6 +42,18 @@ func CleanupWorkspace() {
 	}
 	cleanService()
 	cleanShadowPodAndConfigMap()
+}
+
+// shutdownTunDevice stops the tun2socks engine so the tun (utun) device is
+// destroyed deterministically on session end, not only via the ToSocks signal
+// goroutine. Skipped when no tun device was created (--disableTunDevice).
+func shutdownTunDevice() {
+	if opt.Get().Connect.DisableTunDevice {
+		return
+	}
+	if err := tunIns().Shutdown(); err != nil {
+		log.Debug().Err(err).Msgf("Failed to shutdown tun device")
+	}
 }
 
 func recoverGlobalHostsAndProxy() {

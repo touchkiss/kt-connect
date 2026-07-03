@@ -94,3 +94,6 @@ func (s *Cli) RestoreRoute() error {
 func (s *Cli) GetName() string {
 	return util.TunNameLinux
 }
+
+// resetTunName is a no-op on Linux; the device name is fixed (kt0).
+func resetTunName() {}

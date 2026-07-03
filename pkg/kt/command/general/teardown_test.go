@@ -9,8 +9,55 @@ import (
 
 	opt "github.com/alibaba/kt-connect/pkg/kt/command/options"
 	"github.com/alibaba/kt-connect/pkg/kt/service/cluster"
+	"github.com/alibaba/kt-connect/pkg/kt/service/tun"
 	"github.com/alibaba/kt-connect/pkg/kt/util"
 )
+
+type fakeTun struct {
+	tun.Tunnel
+	shutdownCalls int
+}
+
+func (f *fakeTun) Shutdown() error {
+	f.shutdownCalls++
+	return nil
+}
+
+func TestShutdownTunDeviceStopsEngineWhenTunEnabled(t *testing.T) {
+	ft := &fakeTun{}
+	originalTun := tunIns
+	tunIns = func() tun.Tunnel { return ft }
+	originalDisable := opt.Get().Connect.DisableTunDevice
+	t.Cleanup(func() {
+		tunIns = originalTun
+		opt.Get().Connect.DisableTunDevice = originalDisable
+	})
+
+	opt.Get().Connect.DisableTunDevice = false
+	shutdownTunDevice()
+
+	if ft.shutdownCalls != 1 {
+		t.Fatalf("expected tun Shutdown to be called once, got %d", ft.shutdownCalls)
+	}
+}
+
+func TestShutdownTunDeviceSkippedWhenTunDisabled(t *testing.T) {
+	ft := &fakeTun{}
+	originalTun := tunIns
+	tunIns = func() tun.Tunnel { return ft }
+	originalDisable := opt.Get().Connect.DisableTunDevice
+	t.Cleanup(func() {
+		tunIns = originalTun
+		opt.Get().Connect.DisableTunDevice = originalDisable
+	})
+
+	opt.Get().Connect.DisableTunDevice = true
+	shutdownTunDevice()
+
+	if ft.shutdownCalls != 0 {
+		t.Fatalf("expected tun Shutdown to be skipped for --disableTunDevice, got %d calls", ft.shutdownCalls)
+	}
+}
 
 type cleanupClusterStub struct {
 	cluster.KubernetesInterface

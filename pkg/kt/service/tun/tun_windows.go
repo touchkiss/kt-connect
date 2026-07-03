@@ -229,6 +229,9 @@ func (s *Cli) GetName() string {
 	return util.TunNameWin
 }
 
+// resetTunName is a no-op on Windows; the device name is fixed.
+func resetTunName() {}
+
 func getInterfaceIndex(s *Cli) (string, []string, error) {
 	var ktIdx string
 	var otherIdx []string

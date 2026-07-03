@@ -7,11 +7,13 @@ type Tunnel interface {
 	SetRoute(ipRange []string, excludeIpRange []string) error
 	CheckRoute(ipRange []string) []string
 	RestoreRoute() error
+	Shutdown() error
 	GetName() string
 }
 
 // Cli the singleton type
-type Cli struct {}
+type Cli struct{}
+
 var instance *Cli
 
 // Ins get singleton instance

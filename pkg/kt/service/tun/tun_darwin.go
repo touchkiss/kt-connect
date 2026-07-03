@@ -112,6 +112,14 @@ func (s *Cli) RestoreRoute() error {
 }
 
 var tunName = ""
+
+// resetTunName clears the cached device name so the next GetName re-scans
+// interfaces after a tun device is destroyed, preventing the utunN number
+// from climbing across connect sessions in the same process.
+func resetTunName() {
+	tunName = ""
+}
+
 func (s *Cli) GetName() string {
 	if tunName != "" {
 		return tunName
@@ -126,7 +134,7 @@ func (s *Cli) GetName() string {
 				}
 			}
 		}
-		tunName = fmt.Sprintf("%s%d", util.TunNameMac, tunN + 1)
+		tunName = fmt.Sprintf("%s%d", util.TunNameMac, tunN+1)
 	}
 	return tunName
 }
